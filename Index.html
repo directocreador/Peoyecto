@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SUITE | Live</title>
+  
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SUITEpro">
+  <link rel="apple-touch-icon" href="https://img.icons8.com/fluency-systems-filled/180/00f2fe/s.png">
+  <link rel="manifest" href="./manifest.json">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://meet.jit.si/external_api.js"></script>
+  <style>
+    body {
+      background-color: #06080e;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    #meet iframe {
+      border-radius: 1.25rem;
+    }
+  </style>
+</head>
+<body class="text-white min-h-screen flex flex-col justify-between p-4 max-w-md mx-auto select-none">
+
+  <!-- Header Superior -->
+  <header class="flex items-center justify-between py-2 px-1">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-full bg-[#0d121d] border border-cyan-500/30 flex items-center justify-center font-bold text-lg shadow-lg text-cyan-400">
+        S
+      </div>
+      <div>
+        <h1 class="font-bold tracking-widest text-sm text-gray-100 flex items-center gap-1">
+          SUITE <span class="text-xs px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 font-normal">LIVE</span>
+        </h1>
+        <p class="text-[10px] text-gray-400 font-medium tracking-wide">BY SUITEPRO</p>
+      </div>
+    </div>
+
+    <div class="flex items-center space-x-2">
+      <button onclick="abrirPago()" class="px-3 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/40 text-cyan-400 text-xs font-bold active:scale-95 transition flex items-center space-x-1">
+        <span>💳 Membresía</span>
+      </button>
+
+      <button onclick="copiarEnlace()" class="p-2.5 rounded-full bg-[#101622] border border-gray-800 text-cyan-400 active:scale-95 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Tarjeta Principal -->
+  <main class="flex-1 my-3 bg-[#0a0d16] border border-gray-800/80 rounded-3xl p-4 flex flex-col justify-between relative overflow-hidden shadow-2xl">
+    
+    <div class="flex items-center justify-between z-10 mb-2">
+      <div class="flex items-center space-x-2">
+        <div class="w-7 h-7 rounded-full bg-[#121826] border border-cyan-500/40 flex items-center justify-center text-xs font-bold text-cyan-400">S</div>
+        <div>
+          <p class="text-[11px] font-bold tracking-wider text-gray-200">SUITE LIVE</p>
+          <p class="text-[9px] text-gray-400">Una experiencia SUITEpro</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-1.5 bg-[#0e1422] border border-cyan-500/30 px-3 py-1 rounded-full text-[10px] text-cyan-300 font-medium">
+        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+        <span>SALA MULTIUSUARIO</span>
+      </div>
+    </div>
+
+    <div id="meet" class="w-full h-[60vh] my-2 bg-[#06080e] rounded-2xl overflow-hidden border border-gray-800 flex items-center justify-center">
+      <div id="placeholder" class="text-center p-6 space-y-4">
+        <div class="relative w-20 h-20 mx-auto flex items-center justify-center">
+          <div class="absolute inset-0 rounded-full border border-cyan-500/30 animate-ping"></div>
+          <div class="w-16 h-16 rounded-full bg-[#101726] border border-cyan-400/50 flex items-center justify-center font-bold text-2xl text-cyan-400 shadow-lg shadow-cyan-500/20">
+            S
+          </div>
+        </div>
+
+        <div>
+          <p class="text-xs uppercase tracking-widest text-cyan-400 font-semibold mb-1">Órbita de Conversaciones</p>
+          <h2 class="text-xl font-extrabold text-white">Tu cámara. Tu universo.</h2>
+          <p class="text-xs text-gray-400 mt-2 max-w-xs mx-auto">
+            Ingresa a la sala para conectar y transmitir con múltiples personas al mismo tiempo.
+          </p>
+        </div>
+
+        <button 
+          onclick="iniciarLlamada()" 
+          class="w-full py-3.5 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-2xl shadow-lg shadow-cyan-500/25 transition active:scale-95 flex items-center justify-center space-x-2 text-sm"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+          <span>Entrar a la Sala Grupal</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="text-center pt-1 z-10">
+      <p class="text-[10px] text-cyan-500 font-medium uppercase tracking-widest">Explora tu órbita</p>
+    </div>
+  </main>
+
+  <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-cyan-500 text-black font-bold text-xs px-4 py-2 rounded-full shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none">
+    ¡Enlace de invitación copiado!
+  </div>
+
+  <script>
+    function iniciarLlamada() {
+      document.getElementById('placeholder').style.display = 'none';
+      
+      const domain = 'meet.jit.si';
+      const options = {
+        roomName: 'SUITEpro_Live_Room_Global_Space',
+        width: '100%',
+        height: '100%',
+        parentNode: document.querySelector('#meet'),
+        configOverwrite: {
+          startWithAudioMuted: false,
+          startWithVideoMuted: false,
+          prejoinPageEnabled: false
+        },
+        interfaceConfigOverwrite: {
+          SHOW_JITSI_WATERMARK: false,
+          DEFAULT_BACKGROUND: '#06080e',
+          TOOLBAR_BUTTONS: [
+            'microphone', 'camera', 'desktop', 'chat', 'tileview', 'fullscreen'
+          ]
+        }
+      };
+      
+      new JitsiMeetExternalAPI(domain, options);
+    }
+
+    function copiarEnlace() {
+      navigator.clipboard.writeText(window.location.href);
+      const toast = document.getElementById('toast');
+      toast.style.opacity = '1';
+      setTimeout(() => { toast.style.opacity = '0'; }, 2500);
+    }
+
+    function abrirPago() {
+      alert('Redirigiendo a la pasarela de pagos de SUITEpro...');
+      window.open('https://paypal.me', '_blank'); 
+    }
+  </script>
+</body>
+</html>
