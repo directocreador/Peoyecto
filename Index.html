@@ -1,0 +1,1092 @@
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SUITE proConnect</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body, html { width: 100%; height: 100%; background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; position: relative; }
+        
+        /* CANVAS DE FONDO ESPACIAL */
+        #space-bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; background: #000; }
+
+        /* --- SPLASH SCREEN CON EFECTOS ESTELARES PRO --- */
+        #splash-screen {
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at center, rgba(10, 10, 20, 0.85) 0%, #000 100%);
+            z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.8s ease; cursor: pointer; user-select: none;
+        }
+        .splash-core-wrapper {
+            position: relative; width: 220px; height: 220px; display: flex; align-items: center; justify-content: center;
+        }
+        .splash-glow-ring {
+            position: absolute; inset: -15px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, rgba(59, 130, 246, 0) 70%);
+            animation: pulseGlow 3s infinite alternate ease-in-out;
+        }
+        .splash-orbit {
+            position: absolute; inset: -10px; border: 1px dashed rgba(59, 130, 246, 0.4); border-radius: 50%;
+            animation: rotateOrbit 12s linear infinite;
+        }
+        .splash-orbit::after {
+            content: ''; position: absolute; top: 10px; left: 10px; width: 8px; height: 8px;
+            background: #fff; border-radius: 50%; box-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6;
+        }
+        .splash-core {
+            width: 180px; height: 180px;
+            background: radial-gradient(circle, #090b14 0%, #000 100%);
+            border: 1.5px solid rgba(59, 130, 246, 0.5); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 40px rgba(59, 130, 246, 0.3), inset 0 0 25px rgba(59, 130, 246, 0.2);
+            position: relative; z-index: 2;
+        }
+        .splash-text { margin-top: 35px; font-size: 11px; letter-spacing: 6px; color: rgba(255,255,255,0.7); text-transform: uppercase; text-align: center; }
+
+        @keyframes pulseGlow { 0% { transform: scale(0.95); opacity: 0.5; } 100% { transform: scale(1.15); opacity: 0.9; } }
+        @keyframes rotateOrbit { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- BARRA SUPERIOR FIJA --- */
+        .top-bar {
+            position: fixed; top: 0; left: 0; right: 0; height: 60px;
+            background: rgba(5, 5, 8, 0.85); backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 16px; z-index: 25;
+        }
+        .brand-header {
+            display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; transition: transform 0.2s ease;
+        }
+        .brand-header:active { transform: scale(0.98); }
+        .brand-logo-text { font-size: 23px; font-weight: 800; letter-spacing: 2px; color: #fff; text-transform: uppercase; line-height: 1; }
+        .brand-logo-text span { color: #3b82f6; font-weight: 500; }
+
+        .top-actions { display: flex; align-items: center; gap: 8px; }
+        .lang-btn, .vive-btn, .settings-btn {
+            background: rgba(20, 20, 28, 0.8); border: 1px solid rgba(255, 255, 255, 0.12); color: #fff;
+            padding: 6px 12px; border-radius: 16px; font-size: 10px; font-weight: 600; cursor: pointer;
+            backdrop-filter: blur(10px); transition: all 0.3s ease; letter-spacing: 1px; text-transform: uppercase;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .lang-btn:hover, .vive-btn:hover, .settings-btn:hover { border-color: #3b82f6; }
+        .vive-btn { color: #3b82f6; border-color: rgba(59, 130, 246, 0.3); }
+        .settings-btn { width: 32px; height: 32px; padding: 0; border-radius: 50%; font-size: 14px; }
+
+        /* LÍNEA FLOTANTE SECRETA */
+        #secret-floating-input {
+            position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+            width: 220px; background: rgba(5, 5, 8, 0.95); border: 1px solid #3b82f6;
+            padding: 8px 14px; border-radius: 20px; z-index: 60; display: none;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); backdrop-filter: blur(20px);
+        }
+        #secret-floating-input input {
+            width: 100%; background: transparent; border: none; color: #fff; text-align: center;
+            font-size: 12px; letter-spacing: 3px; outline: none;
+        }
+
+        /* --- PORTAL DE ACCESO --- */
+        #auth-portal { 
+            position: absolute; inset: 0; z-index: 10;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            opacity: 0; pointer-events: none; transition: opacity 0.5s ease; padding: 20px;
+        }
+
+        .auth-card {
+            background: rgba(8, 8, 12, 0.9); backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; padding: 30px 20px;
+            width: 100%; max-width: 380px; box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+        }
+
+        .auth-tabs { display: flex; width: 100%; gap: 6px; background: transparent; margin-bottom: 20px; }
+        .auth-tab {
+            flex: 1; font-size: 9px; font-weight: 700; padding: 10px 4px; border-radius: 10px;
+            cursor: pointer; transition: all 0.3s ease; letter-spacing: 0.5px; text-transform: uppercase;
+            text-align: center; backdrop-filter: blur(10px); outline: none;
+        }
+        .auth-tab.tab-ver { background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.8); }
+        .auth-tab.tab-ver.active { background: rgba(255, 255, 255, 0.25); border-color: #fff; color: #fff; box-shadow: 0 0 15px rgba(255,255,255,0.25); }
+
+        .auth-tab.tab-tx { background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.3); color: rgba(59, 130, 246, 0.8); }
+        .auth-tab.tab-tx.active { background: rgba(59, 130, 246, 0.3); border-color: #3b82f6; color: #fff; box-shadow: 0 0 15px rgba(59,130,246,0.4); }
+
+        .auth-tab.tab-candado { background: rgba(234, 179, 8, 0.08); border: 1px solid rgba(234, 179, 8, 0.3); color: rgba(234, 179, 8, 0.8); }
+        .auth-tab.tab-candado.active { background: rgba(234, 179, 8, 0.3); border-color: #eab308; color: #fff; box-shadow: 0 0 15px rgba(234,179,8,0.4); }
+
+        .auth-form { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+        .auth-input {
+            width: 100%; background: rgba(12, 12, 16, 0.95); border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 15px; border-radius: 10px; color: #fff; font-size: 12px; outline: none; text-align: center;
+            letter-spacing: 2px; transition: all 0.3s ease;
+        }
+        .auth-input:focus { border-color: #3b82f6; }
+        .auth-btn {
+            width: 100%; background: #fff; color: #000; border: none; padding: 12px; border-radius: 10px;
+            font-weight: 700; font-size: 11px; letter-spacing: 2px; cursor: pointer; transition: all 0.3s ease; text-transform: uppercase;
+        }
+        .auth-btn:hover { background: #3b82f6; color: #fff; }
+
+        .phone-group { display: flex; gap: 6px; width: 100%; }
+        .country-select { background: rgba(12, 12, 16, 0.95); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; padding: 0 8px; border-radius: 10px; font-size: 11px; outline: none; }
+
+        /* --- PRE-VISTA Y ENCUADRE DE CÁMARA --- */
+        #preview-overlay {
+            position: fixed; inset: 0; background: #000; z-index: 45; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+        #preview-video-container {
+            position: relative; width: 90%; max-width: 480px; aspect-ratio: 9/16; max-height: 70vh;
+            border-radius: 24px; overflow: hidden; border: 1px solid rgba(59, 130, 246, 0.4);
+            box-shadow: 0 0 50px rgba(59, 130, 246, 0.3); background: #050508;
+        }
+        #preview-video {
+            width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); /* Modo espejo */
+        }
+        .preview-controls {
+            position: absolute; bottom: 20px; left: 0; right: 0; display: flex;
+            flex-direction: column; align-items: center; gap: 10px; padding: 0 20px;
+        }
+        .btn-transmit-live {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; border: none;
+            padding: 14px 28px; border-radius: 30px; font-weight: 800; font-size: 12px; letter-spacing: 2px;
+            text-transform: uppercase; cursor: pointer; box-shadow: 0 10px 25px rgba(59, 130, 246, 0.5);
+            transition: all 0.3s ease; backdrop-filter: blur(10px);
+        }
+        .btn-transmit-live:hover { transform: scale(1.05); box-shadow: 0 15px 35px rgba(59, 130, 246, 0.7); }
+
+        /* --- INTERFAZ PRINCIPAL --- */
+        #app-container { display: none; width: 100%; height: 100%; position: absolute; inset: 0; z-index: 2; }
+        
+        /* ESCENARIO PRINCIPAL O SELECCIONADO (HD) */
+        #main-stage-wrapper {
+            position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
+            width: 80%; max-width: 640px; height: 42%;
+            background: rgba(10, 10, 15, 0.8); border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 20px; overflow: hidden; z-index: 4;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8); transition: all 0.5s ease;
+        }
+        #stage { width: 100%; height: 100%; object-fit: cover; background: #000; }
+
+        /* CÁMARA FLOTANTE DEL USUARIO (PIP) */
+        #pip-container { 
+            position: absolute; top: 80px; right: 16px; width: 120px; height: 90px; 
+            background: #000; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); 
+            overflow: hidden; z-index: 12; cursor: grab; touch-action: none; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8); user-select: none; transition: all 0.4s ease;
+        }
+        #pip-container.medium { width: 220px; height: 150px; }
+        #pip-container.fullscreen { position: fixed; inset: 15px; width: auto !important; height: auto !important; z-index: 40; border-radius: 16px; }
+        #pip-video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+        .pip-timer-badge { position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,0.7); border: 1px solid rgba(59,130,246,0.5); padding: 2px 6px; border-radius: 8px; font-size: 8px; color: #3b82f6; font-weight: 700; letter-spacing: 1px; z-index: 5; }
+
+        /* CARRUSEL HORIZONTAL RÍTMICO Y FAVORITOS */
+        .carousel-section-wrapper {
+            position: absolute; bottom: 125px; left: 0; right: 0; z-index: 6;
+            display: flex; flex-direction: column; gap: 8px; padding: 0 16px;
+        }
+        .carousel-header {
+            display: flex; justify-content: space-between; align-items: center; font-size: 10px;
+            color: rgba(255,255,255,0.6); letter-spacing: 1.5px; text-transform: uppercase;
+        }
+        .filter-fav-btn {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); color: #fff;
+            padding: 3px 8px; border-radius: 10px; cursor: pointer; font-size: 9px; transition: all 0.2s;
+        }
+        .filter-fav-btn.active { background: #eab308; color: #000; border-color: #eab308; font-weight: 700; }
+
+        #horizontal-carousel {
+            display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none;
+            padding: 4px 0; scroll-behavior: smooth;
+        }
+        #horizontal-carousel::-webkit-scrollbar { display: none; }
+
+        .carousel-card {
+            min-width: 110px; height: 140px; background: rgba(12, 12, 18, 0.85);
+            border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; flex-shrink: 0;
+            position: relative; overflow: hidden; cursor: pointer; transition: all 0.3s ease;
+            backdrop-filter: blur(10px); display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .carousel-card:hover { border-color: #3b82f6; transform: translateY(-3px); }
+        .carousel-card-video { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; pointer-events: none; }
+        .carousel-card-overlay {
+            position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.85) 100%);
+            display: flex; flex-direction: column; justify-content: space-between; padding: 6px; z-index: 2;
+        }
+        .card-top-actions { display: flex; justify-content: space-between; align-items: center; }
+        .fav-star { font-size: 12px; color: rgba(255,255,255,0.4); cursor: pointer; transition: color 0.2s; }
+        .fav-star.active { color: #eab308; text-shadow: 0 0 8px rgba(234, 179, 8, 0.8); }
+        .card-info { font-size: 9px; font-weight: 700; letter-spacing: 0.5px; color: #fff; }
+
+        /* MENÚ DE ACCIONES RÁPIDAS EN CÁMARA SELECCIONADA */
+        .card-action-bar {
+            display: flex; gap: 4px; margin-top: 4px; opacity: 0; transition: opacity 0.2s ease;
+        }
+        .carousel-card:hover .card-action-bar { opacity: 1; }
+        .mini-act-btn {
+            flex: 1; background: rgba(255,255,255,0.15); border: none; border-radius: 6px;
+            color: #fff; font-size: 8px; padding: 4px 0; text-align: center; cursor: pointer;
+        }
+        .mini-act-btn:hover { background: #3b82f6; }
+
+        /* TIMBRE PRO */
+        #timbre-container { position: absolute; bottom: 75px; right: 16px; z-index: 15; }
+        .timbre-trigger {
+            background: rgba(15, 15, 20, 0.9); border: 1px solid rgba(59, 130, 246, 0.4); color: #3b82f6;
+            padding: 8px 14px; border-radius: 20px; font-size: 10px; font-weight: 700; cursor: pointer;
+            letter-spacing: 1px; backdrop-filter: blur(10px); text-transform: uppercase;
+        }
+
+        /* HUD CONTROLES PRO */
+        .hud {
+            position: absolute; bottom: 75px; left: 50%; transform: translateX(-50%); z-index: 15;
+            display: flex; align-items: center; gap: 8px; background: rgba(8, 8, 12, 0.9);
+            backdrop-filter: blur(20px); padding: 8px 14px; border-radius: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .btn {
+            background: transparent; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.8);
+            font-size: 10px; font-weight: 600; cursor: pointer; padding: 6px 10px; border-radius: 15px;
+            transition: all 0.2s; white-space: nowrap; letter-spacing: 1px; text-transform: uppercase; outline: none;
+        }
+        .btn:hover { border-color: #3b82f6; color: #fff; }
+        .btn-active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+        .btn-danger { color: #f87171; border-color: rgba(248, 113, 113, 0.3); }
+
+        .volume-control { display: flex; align-items: center; gap: 4px; padding: 0 2px; }
+        .volume-slider { width: 50px; height: 3px; accent-color: #3b82f6; cursor: pointer; }
+
+        /* CHAT GENERAL GLOBAL */
+        #global-chat-bar {
+            position: absolute; bottom: 24px; left: 16px; right: 16px; height: 40px;
+            background: rgba(6, 6, 10, 0.9); backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px;
+            z-index: 15; display: flex; align-items: center; padding: 0 12px; gap: 10px;
+        }
+        .global-chat-badge { font-size: 9px; font-weight: 700; color: #3b82f6; letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; }
+        .global-chat-ticker { flex: 1; overflow: hidden; position: relative; height: 100%; display: flex; align-items: center; }
+        .global-chat-feed { display: flex; align-items: center; gap: 20px; font-size: 11px; color: rgba(255,255,255,0.7); white-space: nowrap; animation: ticker-scroll 30s linear infinite; }
+        @keyframes ticker-scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        .global-chat-input { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 5px 10px; color: #fff; font-size: 10px; outline: none; width: 160px; }
+
+        /* FOOTER CORPORATIVO */
+        #brand-footer {
+            position: absolute; bottom: 4px; left: 0; right: 0; height: 16px;
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            font-size: 8px; color: rgba(255,255,255,0.35); letter-spacing: 1.5px;
+            text-transform: uppercase; z-index: 14; pointer-events: none; user-select: none;
+        }
+
+        /* PANEL ADMIN */
+        #admin-panel {
+            position: absolute; top: 80px; right: 16px; width: 280px; height: 220px;
+            background: rgba(8, 8, 12, 0.95); backdrop-filter: blur(25px);
+            border: 1px solid #eab308; border-radius: 16px; z-index: 38; display: none;
+            flex-direction: column; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.9);
+            transition: all 0.3s ease; cursor: grab; touch-action: none;
+        }
+        #admin-panel.medium { width: 340px; height: 320px; }
+        #admin-panel.fullscreen { position: fixed; inset: 20px; width: auto !important; height: auto !important; z-index: 45; border-radius: 20px; }
+
+        /* CHAT PRIVADO P2P */
+        #private-p2p-modal {
+            display: none; position: absolute; bottom: 70px; right: 16px; width: 280px; height: 320px;
+            background: rgba(8, 8, 12, 0.95); backdrop-filter: blur(20px);
+            border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 16px;
+            z-index: 35; flex-direction: column; overflow: hidden;
+        }
+        .p2p-header { background: rgba(15, 15, 22, 0.9); padding: 10px 12px; font-size: 10px; font-weight: 700; color: #3b82f6; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); letter-spacing: 1px; user-select: none; }
+        .p2p-messages { flex: 1; padding: 10px; overflow-y: auto; font-size: 10px; display: flex; flex-direction: column; gap: 6px; }
+        .p2p-msg-item { padding: 6px 10px; border-radius: 8px; max-width: 85%; line-height: 1.3; }
+        .p2p-msg-item.me { background: #3b82f6; color: #fff; align-self: flex-end; }
+        .p2p-msg-item.peer { background: rgba(255,255,255,0.08); color: #ccc; align-self: flex-start; }
+        .p2p-input-box { display: flex; padding: 8px; background: #000; border-top: 1px solid rgba(255,255,255,0.08); gap: 6px; }
+
+        /* MODALES */
+        #settings-modal { position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); z-index: 45; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .settings-card { background: rgba(10, 10, 14, 0.95); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 20px; padding: 25px; width: 100%; max-width: 360px; text-align: center; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 20px 50px rgba(0,0,0,0.9); }
+        .settings-option { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.03); padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); }
+        .settings-option select { background: #000; color: #fff; border: 1px solid #333; padding: 4px 8px; border-radius: 6px; font-size: 10px; outline: none; }
+
+        #timbre-window { display: none; position: absolute; bottom: 70px; right: 16px; width: 280px; height: 320px; background: rgba(8, 8, 12, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; z-index: 35; flex-direction: column; overflow: hidden; }
+        #sub-modal { position: absolute; inset: 0; background: rgba(0,0,0,0.92); backdrop-filter: blur(20px); z-index: 40; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .sub-card { background: rgba(10, 10, 14, 0.95); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 20px; padding: 25px; width: 100%; max-width: 360px; text-align: center; display: flex; flex-direction: column; gap: 12px; }
+        .plan-item { background: rgba(20,20,28,0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 10px; text-align: left; cursor: pointer; transition: all 0.2s; }
+        .plan-item:hover { border-color: #3b82f6; background: rgba(59,130,246,0.1); }
+        
+        #master-console { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.95); z-index: 30; padding: 25px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+    <!-- CANVAS DE FONDO ESPACIAL -->
+    <canvas id="space-bg"></canvas>
+
+    <!-- LÍNEA FLOTANTE SECRETA -->
+    <div id="secret-floating-input">
+        <input type="password" id="secret-pin-box" placeholder="••••" maxlength="6" onkeypress="handleSecretPinKey(event)">
+    </div>
+
+    <!-- BARRA SUPERIOR FIJA -->
+    <div class="top-bar">
+        <div class="brand-header" onclick="refreshSuiteView()">
+            <svg viewBox="0 0 32 32" style="width: 28px; height: 28px;">
+                <path d="M8 9C12 7 20 7 24 9" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                <path d="M5 12C10 9 22 9 27 12" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                <text x="16" y="24" font-family="-apple-system, sans-serif" font-size="18" font-weight="800" fill="#ffffff" text-anchor="middle">S</text>
+            </svg>
+            <span class="brand-logo-text">SUITE <span>proConnect</span></span>
+        </div>
+        <div class="top-actions">
+            <button class="settings-btn" onclick="toggleSettingsModal()" title="Ajustes Pro">⚙️</button>
+            <button class="vive-btn" onclick="openSubscriptionModal()" id="btn-vive-text">VIVE EN LA SUITE</button>
+            <button class="lang-btn" onclick="toggleLanguage()" id="btn-lang">EN</button>
+        </div>
+    </div>
+
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <div class="splash-core-wrapper">
+            <div class="splash-glow-ring"></div>
+            <div class="splash-orbit"></div>
+            <div class="splash-core">
+                <svg viewBox="0 0 32 32" style="width: 110px; height: 110px;">
+                    <path d="M8 9C12 7 20 7 24 9" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                    <path d="M5 12C10 9 22 9 27 12" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                    <text x="16" y="24" font-family="-apple-system, sans-serif" font-size="20" font-weight="800" fill="#ffffff" text-anchor="middle">S</text>
+                </svg>
+            </div>
+        </div>
+        <div class="splash-text">SUITE proConnect // OPTICA ESPACIAL</div>
+    </div>
+
+    <!-- Portal Acceso -->
+    <div id="auth-portal">
+        <div class="auth-card">
+            <div class="auth-tabs">
+                <button class="auth-tab tab-ver active" onclick="switchAuthMode('invitado')" id="tab-ver-suite">INVITADO</button>
+                <button class="auth-tab tab-tx" onclick="switchAuthMode('transmitir')" id="tab-transmitir-suite">TRANSMITIR</button>
+                <button class="auth-tab tab-candado" onclick="switchAuthMode('candado')" id="tab-suite-candado">CANDADO</button>
+            </div>
+            <div id="auth-content-area" class="auth-form"></div>
+        </div>
+    </div>
+
+    <!-- PANTALLA DE PRE-VISTA Y ENCUADRE ESPACIAL -->
+    <div id="preview-overlay">
+        <div id="preview-video-container">
+            <video id="preview-video" autoplay playsinline muted></video>
+            <div class="preview-controls">
+                <span style="font-size: 10px; letter-spacing: 1px; color: rgba(255,255,255,0.7);">AJUSTA TU ENCUADRE Y LUZ</span>
+                <button class="btn-transmit-live" onclick="confirmAndGoLive()">TRANSMITIR EN VIVO ✨</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interfaz Principal -->
+    <div id="app-container">
+        <!-- ESCENARIO PRINCIPAL O SELECCIONADO -->
+        <div id="main-stage-wrapper">
+            <video id="stage" autoplay playsinline poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></video>
+        </div>
+
+        <!-- PANEL ADMIN FLOTANTE -->
+        <div id="admin-panel">
+            <div class="p2p-header" id="admin-panel-header" style="border-color:#eab308; color:#eab308;">
+                <span>PANEL ADMIN // PERFIL</span>
+                <span style="cursor: pointer;" onclick="closeAdminPanelOnly()">✕</span>
+            </div>
+            <div style="padding:12px; font-size:10px; color:#aaa; display:flex; flex-direction:column; gap:8px; flex:1;">
+                <div>Estado: Master Conectado</div>
+                <div>Nivel: 2829 (Propietario)</div>
+                <button class="btn" style="border-color:#eab308; color:#eab308; margin-top:5px;" onclick="openMasterConsole()">Abrir Consola P2P</button>
+            </div>
+        </div>
+
+        <!-- CARRUSEL HORIZONTAL RÍTMICO Y FAVORITOS -->
+        <div class="carousel-section-wrapper">
+            <div class="carousel-header">
+                <span>Transmisiones en vivo</span>
+                <button class="filter-fav-btn" id="fav-filter-btn" onclick="toggleFavFilter()">★ FAVORITOS</button>
+            </div>
+            <div id="horizontal-carousel">
+                <!-- Se poblará dinámicamente -->
+            </div>
+        </div>
+
+        <!-- CÁMARA FLOTANTE CON TIMER EN VIVO -->
+        <div id="pip-container">
+            <div class="pip-timer-badge" id="session-timer">10:00</div>
+            <video id="pip-video" autoplay playsinline muted poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></video>
+        </div>
+
+        <!-- TIMBRE PRO -->
+        <div id="timbre-container">
+            <button class="timbre-trigger" onclick="toggleTimbreChat()">TIMBRE PRO</button>
+            <div id="timbre-window">
+                <div class="p2p-header">
+                    <span>TIMBRE // SOPORTE</span>
+                    <span style="cursor: pointer;" onclick="toggleTimbreChat()">✕</span>
+                </div>
+                <div class="p2p-messages" id="timbre-messages">
+                    <div class="p2p-msg-item peer">Asistencia de pagos y PIN temporal.</div>
+                </div>
+                <div class="p2p-input-box">
+                    <input type="text" id="timbre-input" class="global-chat-input" placeholder="Mensaje..." onkeypress="handleTimbreKey(event)">
+                    <button class="btn" onclick="sendTimbreMessage()">Enviar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- HUD CONTROLES PRO -->
+        <div class="hud" id="hud">
+            <button class="btn" onclick="toggleMasterAudio()" id="btn-master-audio">Audio On</button>
+            <div class="volume-control">
+                <span style="font-size: 8px; color: #888;">VOL</span>
+                <input type="range" class="volume-slider" min="0" max="1" step="0.1" value="1" oninput="setMasterVolume(this.value)">
+            </div>
+            <button class="btn" onclick="toggleMute()" id="btn-mic">Mic On</button>
+            <button class="btn" onclick="toggleVideo()" id="btn-cam">Cam On</button>
+            <button class="btn" onclick="openPrivateP2PChat()">Chat Privado</button>
+            <button class="btn btn-danger" onclick="disconnectCall()">Colgar</button>
+        </div>
+
+        <!-- CHAT PRIVADO P2P -->
+        <div id="private-p2p-modal">
+            <div class="p2p-header">
+                <span>CHAT PRIVADO CAM2CAM</span>
+                <span style="cursor: pointer;" onclick="closePrivateP2PChat()">✕</span>
+            </div>
+            <div class="p2p-messages" id="p2p-messages-container">
+                <div class="p2p-msg-item peer">Canal P2P activo.</div>
+            </div>
+            <div class="p2p-input-box">
+                <input type="text" id="p2p-input" class="global-chat-input" placeholder="Mensaje privado..." onkeypress="handleP2PKey(event)">
+                <button class="btn" onclick="sendP2PMessage()">Enviar</button>
+            </div>
+        </div>
+
+        <!-- CHAT GENERAL GLOBAL -->
+        <div id="global-chat-bar">
+            <span class="global-chat-badge">GLOBAL //</span>
+            <div class="global-chat-ticker">
+                <div class="global-chat-feed" id="global-chat-feed">
+                    <span><b>User_99:</b> Transmision iniciada en HD.</span>
+                    <span><b>SuiteMaster:</b> Bienvenidos a la suite.</span>
+                </div>
+            </div>
+            <input type="text" id="global-chat-input" class="global-chat-input" placeholder="Escribe en chat general..." onkeypress="handleGlobalChatKey(event)">
+        </div>
+
+        <!-- FOOTER CORPORATIVO -->
+        <div id="brand-footer">
+            <span>SUITE PROCONNECT SYSTEM</span>
+            <span>•</span>
+            <span>P2P ENCRYPTED OPTICS</span>
+            <span>•</span>
+            <span>ALL RIGHTS RESERVED</span>
+        </div>
+    </div>
+
+    <!-- MODAL DE PASARELA -->
+    <div id="sub-modal">
+        <div class="sub-card">
+            <h2 style="font-size: 13px; letter-spacing: 2px; color: #3b82f6;">VIVE EN LA SUITE // PASES PRO</h2>
+            <p style="font-size: 10px; color: #888;">Acceso ilimitado a transmisión 24/7:</p>
+            
+            <div class="plan-item" onclick="selectProPlan('1 Hora', '$1.99 USD')">
+                <div style="font-size: 11px; font-weight:700;">PASE 1 HORA - $1.99 USD</div>
+                <div style="font-size: 9px; color:#aaa;">Transmisión ilimitada por 60 min.</div>
+            </div>
+            <div class="plan-item" onclick="selectProPlan('24 Horas', '$4.99 USD')">
+                <div style="font-size: 11px; font-weight:700;">PASE DIA (24H) - $4.99 USD</div>
+                <div style="font-size: 9px; color:#aaa;">Acceso completo e ininterrumpido 24 horas.</div>
+            </div>
+            <div class="plan-item" onclick="selectProPlan('7 Días', '$14.99 USD')">
+                <div style="font-size: 11px; font-weight:700;">PASE SEMANAL - $14.99 USD</div>
+                <div style="font-size: 9px; color:#3b82f6;">7 días continuos + Chat P2P Activado.</div>
+            </div>
+            <div class="plan-item" onclick="selectProPlan('30 Días', '$29.99 USD')">
+                <div style="font-size: 11px; font-weight:700;">PASAPORTE MENSUAL - $29.99 USD</div>
+                <div style="font-size: 9px; color:#eab308;">Acceso VIP ilimitado 30 Días 24/7.</div>
+            </div>
+
+            <button class="btn" onclick="closeSubscriptionModal()" style="margin-top: 5px;">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE AJUSTES PRO -->
+    <div id="settings-modal">
+        <div class="settings-card">
+            <h2 style="font-size: 13px; letter-spacing: 2px; color: #3b82f6;">AJUSTES PRO</h2>
+            <div class="settings-option">
+                <span>Calidad Óptica</span>
+                <select id="set-quality" onchange="updateVideoQuality(this.value)">
+                    <option value="hd">HD (720p)</option>
+                    <option value="fhd" selected>FHD (1080p)</option>
+                </select>
+            </div>
+            <div class="settings-option">
+                <span>Cancelación de Eco</span>
+                <select id="set-echo">
+                    <option value="on" selected>Activo (Pro)</option>
+                    <option value="off">Desactivado</option>
+                </select>
+            </div>
+            <button class="btn" onclick="toggleSettingsModal()" style="background:#3b82f6; color:#fff; border:none; padding:10px;">Guardar y Continuar</button>
+        </div>
+    </div>
+
+    <!-- CONSOLA MAESTRA -->
+    <div id="master-console">
+        <div class="p2p-header">
+            <span>CONSOLA MAESTRA P2P</span>
+            <button class="btn" onclick="closeMasterConsole()">Cerrar</button>
+        </div>
+        <div style="margin-top: 15px;">
+            <span style="font-size: 10px; color: #888;">SDP OFERTA LOCAL</span>
+            <textarea id="local-sdp" style="width:100%; height:60px; background:#111; color:#fff; font-size:10px; border:1px solid #333; border-radius:8px;" readonly></textarea>
+            <button class="btn" onclick="generateOffer()" style="margin-top:5px;">Generar Oferta</button>
+        </div>
+    </div>
+
+    <script>
+        const activeKeys = JSON.parse(localStorage.getItem('suite_keys') || '{}');
+        const userFavorites = new Set(JSON.parse(localStorage.getItem('suite_favs') || '[]'));
+
+        function saveState() {
+            localStorage.setItem('suite_keys', JSON.stringify(activeKeys));
+            localStorage.setItem('suite_favs', JSON.stringify([...userFavorites]));
+        }
+
+        let currentLang = 'ES';
+        const translations = {
+            ES: { verSuite: "INVITADO", transmitir: "TRANSMITIR", candado: "CANDADO", connect: "CONECTAR", vive: "VIVE EN LA SUITE" },
+            EN: { verSuite: "GUEST", transmitir: "TRANSMIT", candado: "PADLOCK", connect: "CONNECT", vive: "LIVE IN THE SUITE" }
+        };
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'ES' ? 'EN' : 'ES';
+            document.getElementById('btn-lang').innerText = currentLang;
+            const t = translations[currentLang];
+            document.getElementById('tab-ver-suite').innerText = t.verSuite;
+            document.getElementById('tab-transmitir-suite').innerText = t.transmitir;
+            document.getElementById('tab-suite-candado').innerText = t.candado;
+            document.getElementById('btn-vive-text').innerText = t.vive;
+            switchAuthMode(currentAuthMode);
+        }
+
+        // FONDO ESPACIAL
+        function initSpaceBackground() {
+            const canvas = document.getElementById('space-bg');
+            const ctx = canvas.getContext('2d');
+            let stars = [];
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                stars = [];
+                for(let i = 0; i < 140; i++) {
+                    stars.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        radius: Math.random() * 1.3,
+                        color: Math.random() > 0.4 ? '#3b82f6' : '#ffffff',
+                        alpha: Math.random(),
+                        speed: Math.random() * 0.02 + 0.005
+                    });
+                }
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                stars.forEach(star => {
+                    star.alpha += star.speed;
+                    if(star.alpha > 1 || star.alpha < 0) star.speed = -star.speed;
+                    ctx.globalAlpha = Math.abs(star.alpha);
+                    ctx.fillStyle = star.color;
+                    ctx.beginPath();
+                    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                requestAnimationFrame(animate);
+            }
+
+            window.addEventListener('resize', resize);
+            resize();
+            animate();
+        }
+
+        let currentAuthMode = 'invitado';
+
+        function switchAuthMode(mode) {
+            currentAuthMode = mode;
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            const area = document.getElementById('auth-content-area');
+
+            if (mode === 'invitado') {
+                document.getElementById('tab-ver-suite').classList.add('active');
+                area.innerHTML = `
+                    <p style="font-size:10px; color:#aaa;">Acceso directo de exploración o estadía extendida.</p>
+                    <button class="auth-btn" onclick="generateGuestTimbre(10)">OBTENER TIMBRE (10 MINS)</button>
+                    <div style="border-top:1px solid rgba(255,255,255,0.1); margin:8px 0; padding-top:8px;">
+                        <span style="font-size:9px; color:#3b82f6; letter-spacing:1px; display:block; margin-bottom:6px;">AUMENTAR ESTADÍA (20 MINS) VÍA WHATSAPP</span>
+                        <div class="phone-group">
+                            <select class="country-select" id="country-code">
+                                <option value="52">+52 MX</option>
+                                <option value="1">+1 US</option>
+                                <option value="34">+34 ES</option>
+                                <option value="57">+57 CO</option>
+                            </select>
+                            <input type="tel" id="wa-number" class="auth-input" placeholder="10 DÍGITOS" maxlength="10">
+                        </div>
+                        <button class="auth-btn" style="margin-top:8px; background:rgba(59,130,246,0.3); color:#fff; border:1px solid #3b82f6;" onclick="generateWaKey()">REGISTRAR VÍA WHATSAPP</button>
+                    </div>
+                `;
+            } else if (mode === 'transmitir') {
+                document.getElementById('tab-transmitir-suite').classList.add('active');
+                area.innerHTML = `
+                    <p style="font-size:10px; color:#aaa; margin-bottom:4px;">Ingresa tu Timbre o Llave única para abrir la puerta.</p>
+                    <input type="text" id="input-key" class="auth-input" placeholder="INGRESA TIMBRE / LLAVE (Ej. TB-XXXXX)" autocomplete="off">
+                    <button class="auth-btn" onclick="verifyTransmissionAccess()">TRANSMITIR</button>
+                `;
+            } else if (mode === 'candado') {
+                document.getElementById('tab-suite-candado').classList.add('active');
+                area.innerHTML = `
+                    <p style="font-size:10px; color:#eab308; margin-bottom:4px;">ACCESO VIP // INGRESA TU LLAVE PRO</p>
+                    <input type="text" id="input-pro-key" class="auth-input" placeholder="LLAVE PRO ADQUIRIDA" autocomplete="off" style="border-color:rgba(234,179,8,0.4);">
+                    <button class="auth-btn" style="background:#eab308; color:#000;" onclick="verifyProAccess()">ACCEDER CON LLAVE PRO</button>
+                    <button class="auth-btn" style="margin-top:5px; background:transparent; color:#eab308; border:1px solid #eab308;" onclick="openSubscriptionModal()">ADQUIRIR PASE PRO</button>
+                `;
+            }
+        }
+
+        function generateGuestTimbre(mins) {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = 'TB-';
+            for(let i=0; i<6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+
+            activeKeys[code] = { type: 'guest', duration: mins, used: false };
+            saveState();
+
+            navigator.clipboard.writeText(code).then(() => {
+                alert(`¡TIMBRE GENERADO!\n\nTu Timbre Único es: ${code}\nCopiado al portapapeles.`);
+                switchAuthMode('transmitir');
+                document.getElementById('input-key').value = code;
+            });
+        }
+
+        function generateWaKey() {
+            const codeEl = document.getElementById('country-code').value;
+            const numEl = document.getElementById('wa-number').value.trim();
+
+            if (numEl.length !== 10 || isNaN(numEl)) {
+                alert('Ingresa un número válido de 10 dígitos.');
+                return;
+            }
+
+            const fullPhone = `${codeEl}${numEl}`;
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = 'TX-';
+            for(let i=0; i<6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+
+            activeKeys[code] = { type: 'wa', duration: 20, phone: fullPhone, used: false };
+            saveState();
+
+            const waMsg = encodeURIComponent(`¡Hola! Mi Llave de acceso a SUITE proConnect es: ${code}. Deseo activar mi estadía de 20 minutos.`);
+            const waUrl = `https://wa.me/${fullPhone}?text=${waMsg}`;
+
+            navigator.clipboard.writeText(code).then(() => {
+                alert(`¡LLAVE REGISTRADA!\n\nCódigo: ${code}\nRedirigiendo a WhatsApp para confirmar tu enlace...`);
+                window.open(waUrl, '_blank');
+                switchAuthMode('transmitir');
+                document.getElementById('input-key').value = code;
+            });
+        }
+
+        function verifyTransmissionAccess() {
+            const key = document.getElementById('input-key').value.trim().toUpperCase();
+            if (!key || !activeKeys[key]) {
+                alert('Llave de transmisión no válida o inexistente.');
+                return;
+            }
+
+            const keyData = activeKeys[key];
+            if (keyData.used) {
+                alert('Esta llave ya ha sido utilizada.');
+                return;
+            }
+
+            keyData.used = true;
+            saveState();
+            openPreviewMode(keyData.duration);
+        }
+
+        function verifyProAccess() {
+            const key = document.getElementById('input-pro-key').value.trim().toUpperCase();
+            if (key === 'PRO-MASTER' || key === '2829' || (activeKeys[key] && activeKeys[key].type === 'pro')) {
+                openPreviewMode(9999);
+            } else {
+                alert('Llave Pro no válida. Adquiere una en "VIVE EN LA SUITE".');
+            }
+        }
+
+        // PRE-VISTA Y ENCUADRE
+        let pendingDuration = 10;
+        let localStream = null;
+
+        async function openPreviewMode(durationMinutes) {
+            pendingDuration = durationMinutes;
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                const previewVid = document.getElementById('preview-video');
+                if(previewVid) previewVid.srcObject = localStream;
+
+                document.getElementById('auth-portal').style.opacity = '0';
+                document.getElementById('auth-portal').style.pointerEvents = 'none';
+                document.getElementById('preview-overlay').style.display = 'flex';
+            } catch(e) {
+                alert('Error al acceder a la cámara o micrófono. Por favor otorga los permisos.');
+            }
+        }
+
+        function confirmAndGoLive() {
+            document.getElementById('preview-overlay').style.display = 'none';
+            document.getElementById('app-container').style.display = 'block';
+
+            const pipVideo = document.getElementById('pip-video');
+            if(pipVideo) pipVideo.srcObject = localStream;
+
+            startOnScreenTimer(pendingDuration);
+            populateCarousel();
+            startCarouselAutoScroll();
+        }
+
+        // CARRUSEL Y NAVEGACIÓN
+        let isAutoScrolling = true;
+        let favOnlyFilter = false;
+
+        const mockUsers = [
+            { id: 1, name: "Suite 01 // HD", fav: false },
+            { id: 2, name: "Suite 02 // VIP", fav: false },
+            { id: 3, name: "Suite 03 // Live", fav: false },
+            { id: 4, name: "Suite 04 // Studio", fav: false }
+        ];
+
+        function populateCarousel() {
+            const container = document.getElementById('horizontal-carousel');
+            if(!container) return;
+            container.innerHTML = '';
+
+            mockUsers.forEach(u => {
+                const isFav = userFavorites.has(u.id);
+                if(favOnlyFilter && !isFav) return;
+
+                const card = document.createElement('div');
+                card.className = 'carousel-card';
+                card.innerHTML = `
+                    <div class="carousel-card-overlay">
+                        <div class="card-top-actions">
+                            <span class="fav-star ${isFav ? 'active' : ''}" onclick="toggleFav(${u.id}, event)">★</span>
+                        </div>
+                        <div>
+                            <div class="card-info">${u.name}</div>
+                            <div class="card-action-bar">
+                                <button class="mini-act-btn" onclick="listenUser(${u.id}, event)">🔊</button>
+                                <button class="mini-act-btn" onclick="openPrivateP2PChat()">💬</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                card.onclick = () => selectStreamToMain(u);
+                container.appendChild(card);
+            });
+        }
+
+        function toggleFav(id, event) {
+            event.stopPropagation();
+            if(userFavorites.has(id)) userFavorites.delete(id);
+            else userFavorites.add(id);
+            saveState();
+            populateCarousel();
+        }
+
+        function toggleFavFilter() {
+            favOnlyFilter = !favOnlyFilter;
+            const btn = document.getElementById('fav-filter-btn');
+            if(btn) btn.classList.toggle('active', favOnlyFilter);
+            populateCarousel();
+        }
+
+        function selectStreamToMain(user) {
+            isAutoScrolling = false;
+            const mainStage = document.getElementById('main-stage-wrapper');
+            if(mainStage) {
+                mainStage.style.borderColor = '#eab308';
+                setTimeout(() => mainStage.style.borderColor = 'rgba(59, 130, 246, 0.3)', 1000);
+            }
+        }
+
+        function startCarouselAutoScroll() {
+            const container = document.getElementById('horizontal-carousel');
+            if(!container) return;
+            setInterval(() => {
+                if(!isAutoScrolling) return;
+                if(container.scrollLeft + container.clientWidth >= container.scrollWidth) {
+                    container.scrollLeft = 0;
+                } else {
+                    container.scrollLeft += 1;
+                }
+            }, 30);
+        }
+
+        function refreshSuiteView() {
+            // Restablece suavemente las posiciones de las cámaras flotantes y carrusel sin interrumpir transmisión
+            const pip = document.getElementById('pip-container');
+            if(pip) {
+                pip.className = '';
+                pip.style.left = 'auto'; pip.style.right = '16px'; pip.style.top = '80px';
+            }
+            const stage = document.getElementById('main-stage-wrapper');
+            if(stage) {
+                stage.style.width = '80%'; stage.style.height = '42%'; stage.style.top = '70px';
+            }
+            isAutoScrolling = true;
+        }
+
+        // TIMER
+        let activeTimerInterval = null;
+        function startOnScreenTimer(mins) {
+            if (mins >= 999) {
+                document.getElementById('session-timer').innerText = 'PRO 24/7';
+                return;
+            }
+
+            let secondsLeft = mins * 60;
+            const timerBadge = document.getElementById('session-timer');
+
+            clearInterval(activeTimerInterval);
+            activeTimerInterval = setInterval(() => {
+                if (secondsLeft <= 0) {
+                    clearInterval(activeTimerInterval);
+                    alert('Tu tiempo de estadía en la Suite ha finalizado.');
+                    disconnectCall();
+                    return;
+                }
+                secondsLeft--;
+                const m = Math.floor(secondsLeft / 60);
+                const s = secondsLeft % 60;
+                timerBadge.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+            }, 1000);
+        }
+
+        function selectProPlan(planName, price) {
+            const phone = prompt(`Planes VIVE EN LA SUITE\nSeleccionado: ${planName} (${price})\n\nIngresa tu WhatsApp para generar tu Llave Pro:`);
+            if (phone && phone.length >= 8) {
+                const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                let code = 'PRO-';
+                for(let i=0; i<6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+
+                activeKeys[code] = { type: 'pro', duration: 9999, phone: phone, used: false };
+                saveState();
+
+                navigator.clipboard.writeText(code).then(() => {
+                    alert(`¡PAGO PROCESADO!\n\nTu Llave Pro es: ${code}\nCopiada al portapapeles. Ve a "CANDADO" para ingresar.`);
+                    closeSubscriptionModal();
+                    switchAuthMode('candado');
+                    document.getElementById('input-pro-key').value = code;
+                });
+            }
+        }
+
+        // UTILIDADES Y MODALES
+        let isMasterAudioOn = true;
+        function toggleMasterAudio() {
+            isMasterAudioOn = !isMasterAudioOn;
+            const stage = document.getElementById('stage');
+            if(stage) stage.muted = !isMasterAudioOn;
+            const btn = document.getElementById('btn-master-audio');
+            if(btn) {
+                btn.innerText = isMasterAudioOn ? 'Audio On' : 'Audio Off';
+                btn.classList.toggle('btn-active', isMasterAudioOn);
+            }
+        }
+
+        function setMasterVolume(val) {
+            const stage = document.getElementById('stage');
+            if(stage) stage.volume = val;
+        }
+
+        function toggleMute() {
+            if (!localStream) return;
+            const audioTrack = localStream.getAudioTracks()[0];
+            if(audioTrack) {
+                audioTrack.enabled = !audioTrack.enabled;
+                document.getElementById('btn-mic').innerText = audioTrack.enabled ? 'Mic On' : 'Mic Off';
+            }
+        }
+
+        function toggleVideo() {
+            if (!localStream) return;
+            const videoTrack = localStream.getVideoTracks()[0];
+            if(videoTrack) {
+                videoTrack.enabled = !videoTrack.enabled;
+                document.getElementById('btn-cam').innerText = videoTrack.enabled ? 'Cam On' : 'Cam Off';
+            }
+        }
+
+        function disconnectCall() {
+            if(localStream) {
+                localStream.getTracks().forEach(t => t.stop());
+                localStream = null;
+            }
+            if(activeTimerInterval) clearInterval(activeTimerInterval);
+            document.getElementById('app-container').style.display = 'none';
+            document.getElementById('preview-overlay').style.display = 'none';
+            const portal = document.getElementById('auth-portal');
+            if(portal) {
+                portal.style.opacity = '1';
+                portal.style.pointerEvents = 'auto';
+            }
+        }
+
+        function toggleSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            if(modal) modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        }
+        function toggleTimbreChat() {
+            const w = document.getElementById('timbre-window');
+            if(w) w.style.display = w.style.display === 'flex' ? 'none' : 'flex';
+        }
+        function sendTimbreMessage() {
+            const input = document.getElementById('timbre-input');
+            if(!input || !input.value.trim()) return;
+            const container = document.getElementById('timbre-messages');
+            if(container) {
+                container.innerHTML += `<div class="p2p-msg-item me">${input.value}</div>`;
+                container.scrollTop = container.scrollHeight;
+            }
+            input.value = '';
+        }
+        function handleTimbreKey(e) { if(e.key === 'Enter') sendTimbreMessage(); }
+        function openSubscriptionModal() {
+            const modal = document.getElementById('sub-modal');
+            if(modal) modal.style.display = 'flex';
+        }
+        function closeSubscriptionModal() {
+            const modal = document.getElementById('sub-modal');
+            if(modal) modal.style.display = 'none';
+        }
+        function openPrivateP2PChat() {
+            const modal = document.getElementById('private-p2p-modal');
+            if(modal) modal.style.display = 'flex';
+        }
+        function closePrivateP2PChat() {
+            const modal = document.getElementById('private-p2p-modal');
+            if(modal) modal.style.display = 'none';
+        }
+        function sendP2PMessage() {
+            const input = document.getElementById('p2p-input');
+            if(!input || !input.value.trim()) return;
+            const container = document.getElementById('p2p-messages-container');
+            if(container) {
+                container.innerHTML += `<div class="p2p-msg-item me">${input.value}</div>`;
+                container.scrollTop = container.scrollHeight;
+            }
+            input.value = '';
+        }
+        function handleP2PKey(e) { if(e.key === 'Enter') sendP2PMessage(); }
+        function handleGlobalChatKey(e) {
+            if(e.key === 'Enter') {
+                const input = document.getElementById('global-chat-input');
+                if(!input || !input.value.trim()) return;
+                const feed = document.getElementById('global-chat-feed');
+                if(feed) feed.innerHTML += `<span><b>Tu:</b> ${input.value}</span>`;
+                input.value = '';
+            }
+        }
+
+        // NIP SECRETO Y SPLASH
+        function triggerSecretInputLine() {
+            const line = document.getElementById('secret-floating-input');
+            if(line) {
+                line.style.display = 'block';
+                document.getElementById('secret-pin-box').focus();
+            }
+        }
+        function handleSecretPinKey(e) {
+            if(e.key === 'Enter') {
+                const val = document.getElementById('secret-pin-box').value.trim();
+                if(val === '2829') {
+                    document.getElementById('secret-floating-input').style.display = 'none';
+                    document.getElementById('secret-pin-box').value = '';
+                    const panel = document.getElementById('admin-panel');
+                    if(panel) panel.style.display = 'flex';
+                } else {
+                    alert('NIP incorrecto');
+                }
+            }
+        }
+        function closeAdminPanelOnly() {
+            const panel = document.getElementById('admin-panel');
+            if(panel) panel.style.display = 'none';
+        }
+        function openMasterConsole() {
+            const consoleEl = document.getElementById('master-console');
+            if(consoleEl) consoleEl.style.display = 'block';
+        }
+        function closeMasterConsole() {
+            const consoleEl = document.getElementById('master-console');
+            if(consoleEl) consoleEl.style.display = 'none';
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initSpaceBackground();
+            switchAuthMode('invitado');
+
+            const splash = document.getElementById('splash-screen');
+            let tapCount = 0, tapTimer = null, holdTimer = null;
+
+            if(splash) {
+                const startHold = () => {
+                    if (tapCount >= 3) {
+                        holdTimer = setTimeout(() => {
+                            tapCount = 0;
+                            triggerSecretInputLine();
+                        }, 1200);
+                    }
+                };
+                const endHold = () => { clearTimeout(holdTimer); };
+
+                splash.addEventListener('mousedown', startHold);
+                splash.addEventListener('mouseup', endHold);
+                splash.addEventListener('touchstart', startHold);
+                splash.addEventListener('touchend', endHold);
+
+                splash.addEventListener('click', () => {
+                    tapCount++;
+                    clearTimeout(tapTimer);
+                    tapTimer = setTimeout(() => { tapCount = 0; }, 800);
+                });
+            }
+
+            setTimeout(() => {
+                if (splash && splash.style.display !== 'none') {
+                    splash.style.opacity = '0';
+                    setTimeout(() => {
+                        splash.style.display = 'none';
+                        const portal = document.getElementById('auth-portal');
+                        if(portal) {
+                            portal.style.opacity = '1';
+                            portal.style.pointerEvents = 'auto';
+                        }
+                    }, 800);
+                }
+            }, 3500);
+        });
+    </script>
+</body>
+</html>
+```
